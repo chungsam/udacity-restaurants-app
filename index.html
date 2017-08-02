@@ -2,89 +2,106 @@
 <html lang="en">
 
 <head>
-    <title></title>
+    <title>Udacity Restaurant App</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="css/style.css" rel="stylesheet">
     <link href="lib/css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
 </head>
 
 <body>
-    <div class="container">
+    <div class="container-fluid">
         <div class="col-lg-12">
             <div class="row">
-                <h1>Let's Eat!</h1>
             </div>
         </div>
         <!-- Main side panel for restaurant searches and listings  -->
         <div class="col-xs-12 col-md-4 col-lg-4">
             <div id="side-panel">
-                <div class="row">
-                    <h4>Filters</h4>
-                    <div class="btn-toolbar">
 
-                        <div class="btn-group">
-                            <button class="btn btn-default">Show all</button>
+                <nav id="side-nav" class="nav nav-stacked">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <h1>Let's Eat!</h1>
                         </div>
-                    </div>
-                    <div class="btn-toolbar">
 
-                        <div class="btn-group">
-                            <button class="btn btn-default">Open Now</button>
-                            <button class="btn btn-default">Closed Today</button>
-
+                        <div class="row">
+                            <div class="panel-group" id="filters-accordion" role="tablist" aria-multiselectable="true">
+                                <div class="panel panel-default">
+                                    <div class="panel-heading" role="tab" id="filters-main-heading">
+                                        <h4 class="panel-title">
+                                            <a role="button" data-toggle="collapse" data-parent="#filters-accordion" href="#collapse-filters-main" aria-expanded="true"
+                                                aria-controls="collapse-filters-main">
+                                                Filters</a>
+                                        </h4>
+                                    </div>
+                                    <div id="collapse-filters-main" class="panel-collapse collapse in" role="tabpanel" aria-labelledBy="filters-main-heading">
+                                        <div class="panel-body">
+                                            <p>
+                                                <div class="btn-group" data-toggle="buttons">
+                                                    <label class="btn btn-default active">
+                                                        <input id="filter-btn-open" type="checkbox" autocomplete="off" checked>Open Now
+                                                    </label>
+                                                    <label class="btn btn-default">
+                                                        <input id="filter-btn-closed" type="checkbox" autocomplete="off">Closed
+                                                    </label>
+                                                </div>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="btn-toolbar">
-
-                        <div class="btn-group">
-                            <button class="btn btn-default">4+ stars</button>
-                            <button class="btn btn-default">3+ stars</button>
-                            <button class="btn btn-default">2+ stars</button>
-
+                        <div class="row">
+                            <form class="">
+                                <h4>Search by keyword</h4>
+                                <div class="form-group">
+                                    <div class="input-group col-sm-12">
+                                        <input id="searchTextBox" type="text" class="form-control" data-bind='value: searchText' placeholder="e.g.: Italian downtown Vancouver">
+                                        <span class="input-group-btn">
+                                            <button type="submit" class="btn btn-default" data-bind='click: searchByText'>I'm hungry!</button>
+                                        </span>
+                                    </div>
+                                </div>
+                            </form>
                         </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <form class="form-inline">
-                        <h4>Search nearby</h4>
-                        <div class="form-group">
-                            <input type="text" class="form-control" data-bind='value: addressInput' placeholder="Address">
-                        </div>
-                        <button type="submit" class="btn btn-default">I'm hungry!</button>
-                    </form>
-                </div>
-                <div class="row">
-                    <form class="form-inline">
-                        <h4>Find a restaurant</h4>
-                        <div class="form-group">
-                            <input type="text" class="form-control" data-bind='value: restaurantNameInput' placeholder="Restaurant">
-                        </div>
-                        <button type="submit" class="btn btn-default">I'm starving!</button>
-                    </form>
-                </div>
-                <div class="row">
-                    <h3>Favorite Restaurants</h3>
-                    <div class="list-group">
-                        <button type="button" class="list-group-item">Restaurant<span class="badge">Open</span></li>
-                        <button type="button" class="list-group-item">Restaurant<span class="badge">Open</span></li>
-                        <button type="button" class="list-group-item">Restaurant<span class="badge">Open</span></li>
-                        <button type="button" class="list-group-item">Restaurant<span class="badge">Open</span></li>
+                        <div class="row">
+                            <h4>Restaurants List</h4>
+                            <div class="panel-group" id="restaurants-accordion" role="tablist" aria-multiselectable="true">
+                                <div class="panel panel-default">
+                                    <div class="panel-heading" role="tab" id="restaurants-main-heading">
+                                        <h4 class="panel-title">
+                                            <a role="button" data-toggle="collapse" data-parent="#restaurants-accordion" href="#collapse-restaurants-main" aria-expanded="true"
+                                                aria-controls="collapse-restaurants-main">
+                                                Restaurants</a>
+                                        </h4>
+                                    </div>
+                                    <div id="collapse-restaurants-main" class="panel-collapse collapse in" role="tabpanel" aria-labelledBy="filters-main-heading">
+                                        <div class="list-group">
+                                            <button type="button" class="list-group-item">Cras justo odio</button>
+                                            <button type="button" class="list-group-item">Dapibus ac facilisis in</button>
+                                            <button type="button" class="list-group-item">Morbi leo risus</button>
+                                            <button type="button" class="list-group-item">Porta ac consectetur ac</button>
+                                            <button type="button" class="list-group-item">Vestibulum at eros</button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
+                </nav>
+            </div>
         </div>
 
         <!-- Google Map  -->
         <div class="col-xs-12 col-md-8 col-lg-8">
-            <div id="map-container">
+            <div class="row">
                 <div id="map"></div>
             </div>
         </div>
     </div>
 
-    <!-- Defer loading for Google Map  -->
-<!-- jQuery  -->
+    <!-- jQuery  -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <!-- Bootstrap  -->
     <script src="lib/js/bootstrap.min.js"></script>
@@ -92,9 +109,9 @@
     <script src="lib/js/knockout-3.4.2.js"></script>
     <!-- Main app  -->
     <script src="js/app.js"></script>
-    <script async defer
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB6j9MTzxR2gkJDmEWJB-6coay9r_QLPvY&libraries=places&callback=initMap">
-</script>
+    <!-- Defer loading for Google Map  -->
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB6j9MTzxR2gkJDmEWJB-6coay9r_QLPvY&libraries=places,geometry&callback=initMap">
+    </script>
 
 </body>
 
