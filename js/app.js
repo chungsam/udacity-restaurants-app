@@ -1,6 +1,9 @@
 /** Globals **/
-var map, searchTextBox, infoWindow, currentLocation, placesService, geocoder;
+var map, bounds, searchTextBox, largeInfoWindow, smallInfoWindow, currentLocation, placesService, geocoder;
 var foodMarkers = [];
+var allRestaurants = ko.observableArray();
+var filteredRestaurants = ko.observableArray();
+var currentRestaurant = ko.observable();
 
 /** App entry point is the callback for fetching Google Maps Javascript API **/
 function initMap() {
@@ -16,16 +19,43 @@ function initMap() {
         center: defaultCoords
     });
 
+    map.setOptions({
+        draggable: true
+    });
+
+    var bounds = map.getBounds();
+
+
     /* Google Maps API Services */
     placesService = new google.maps.places.PlacesService(map);
     geocoder = new google.maps.Geocoder();
 
-    /* Create search box for searching by keyword */
+    /* Create search box for searching by keyword. */
     searchTextBox = new google.maps.places.SearchBox(document.getElementById('searchTextBox'));
     searchTextBox.setBounds(map.getBounds());
 
+    /* Create single large infowindow so that only one shows up at a time. */
+    largeInfoWindow = new google.maps.InfoWindow();
+
+    loadSampleLocations();
 }
 
+/** Load sample locations data on startup. The locations are retrieved from the node server. */
+function loadSampleLocations() {
+    $.ajax({
+        url: '/api/sample-locations',
+        data: {},
+        success: function (data, status) {
+            if (status === "success") {
+                var sampleLocations = data.sampleLocations;
+
+                createMarkersForMultiplePlaces(sampleLocations);
+            }
+        }
+    })
+}
+
+/** Set the map to a particular location. **/
 function setMapToLocation(location) {
     if (location) {
         map.setCenter(location);
@@ -34,6 +64,9 @@ function setMapToLocation(location) {
     }
 }
 
+/** Use the HTML5 Geolocation API and set the map to the current location.
+ *  Code largely taken from W3 "HTML5 Geolocation" example: https://www.w3schools.com/html/html5_geolocation.asp
+ **/
 function setMapToCurrentLocation() {
     var location;
 
@@ -68,6 +101,7 @@ function setMapToCurrentLocation() {
     return location;
 }
 
+/** Get the current location, using the HTML5 Geolocation API**/
 function getCurrentLocation() {
     var location;
 
@@ -101,107 +135,110 @@ function getCurrentLocation() {
 
 }
 
-function getGeoCodeLocation(address) {
-    if (address == '') {
-        window.alert('Please enter in an address');
-    } else {
-        geocoder.geocode({
-            address: address
-        }, function (results, status) {
-            if (status === google.maps.GeocoderStatus.OK) {
-                console.log(results);
-                console.log(results[0].geometry.location);
-                return results[0].geometry.location;
-            } else {
-                console.log(results);
-                window.alert('Sorry, there are no results for that address');
-            }
-        })
-    }
-};
-
+/** Use the Google Places text search API to search for places by keyword.
+ *  Upon a successful query, we then create markers for each returned place.
+ */
 function searchByText(searchText) {
     removeMarkers(foodMarkers);
+    removeRestaurants(allRestaurants);
 
-    var bounds = map.getBounds();
+    bounds = map.getBounds();
 
-    if (searchText == '') {
-        window.alert('Please enter in a search keyword (e.g. Italian');
+    if (searchText === "") {
+        window.alert('Please enter a search term.');
     } else {
         placesService.textSearch({
             query: searchText,
             bounds: bounds,
-            type: ['food']
-            // radius: 500
+            type: ['food'],
+            radius: 50
         }, function (results, status) {
             if (status === google.maps.places.PlacesServiceStatus.OK) {
                 map.setCenter(results[0].geometry.location);
-                createMarkersForPlaces(results);
+
+                /* Go ahead and create markers */
+                createMarkersForMultiplePlaces(results);
+
+            } else {
+                alert("Sorry, there are no results");
+
+                /* Reset markers and clear existing results */
+                removeMarkers(foodMarkers);
+                removeRestaurants(allRestaurants);
             }
         });
     }
+
+
 
 };
 
+/** Utility function for removing markers from the map. */
 function removeMarkers(markers) {
     markers.forEach(function (marker) {
         marker.setMap(null);
+    });
+
+    markers = [];
+}
+
+/** Add a place to the allRestaurants array that is used to keep track of search results.
+ *  Only add the place to the array if it doesn't already exist.
+ */
+function addPlaceToRestaurantsList(place) {
+    /* Check if the place already exists in the allRestaurants observable array */
+    var existingRestaurant = allRestaurants().find(function (restaurant) {
+        return restaurant.place_id === place.place_id
     })
-}
 
-function getNearbyRestaurants(location) {
-
-    var options = {
-        location: location,
-        radius: 500,
-        type: ['food']
-    };
-
-    var callback = function (results, status) {
-        if (status === google.maps.places.PlacesServiceStatus.OK) {
-            console.log(results);
-            return results;
-        }
+    /* If it doesn't exist, add it */
+    if (!existingRestaurant) {
+        allRestaurants.push(place);
+        filteredRestaurants.push(place);
     }
-
-    placesService.nearbySearch(options, callback);
 }
 
-function createMarkersForPlaces(places) {
+/** Creates markers on the map for an array of places, and assigns an info window
+ * for the marker.
+ *  The callback chain also includes a call to searchYelpBusiness to get additional
+ * details from the Yelp Fusion API.
+ * After all the info is gathered, we add the place object to our restaurants observable array
+ * that is tracked by Knockout for client-side rendering.
+ */
+function createMarkersForMultiplePlaces(places) {
     var bounds = new google.maps.LatLngBounds();
 
     places.forEach(function (place) {
-        var icon = {
-            url: place.icon,
-            size: new google.maps.Size(35, 35),
-            origin: new google.maps.Point(0, 0),
-            anchor: new google.maps.Point(15, 34),
-            scaledSize: new google.maps.Size(25, 25)
-        };
+        /* Create instance of largeInfoWindow */
+        largeInfoWindow = new google.maps.InfoWindow();
 
-        var marker = new google.maps.Marker({
-            map: map,
-            icon: icon,
-            title: place.name,
-            animation: google.maps.Animation.DROP,
-            position: place.geometry.location,
-            id: place.place_id
-        });
-
-        var smallInfoWindow = new google.maps.InfoWindow();
-
-        getPlaceDetail(marker, smallInfoWindow);
-
+        /* Create a new marker */
+        var marker = createMarkerForSinglePlace(place, largeInfoWindow);
 
         marker.addListener('click', function () {
-            if (smallInfoWindow.marker == this) {
-                // don't do anything
+            if (largeInfoWindow.marker == this) {
+                // Don't do anything
             } else {
-                getPlaceDetail(this, smallInfoWindow);
+                // Populate the info window
+                populateInfoWindow(this, largeInfoWindow);
             }
         });
 
-        foodMarkers.push(marker);
+        /* Search Yelp for additional business details and add results to the place object */
+        searchYelpBusiness(place, function (data, status) {
+            if (status === "success") {
+                var yelpBusiness = data.businesses[0];
+
+                if (yelpBusiness) {
+                    place.yelp = yelpBusiness;
+                }
+            }
+
+            // Finally, add the place to our restaurants list
+            addPlaceToRestaurantsList(place);
+
+
+        })
 
         if (place.geometry.viewport) {
             bounds.union(place.geometry.viewport);
@@ -211,84 +248,258 @@ function createMarkersForPlaces(places) {
     })
 
     map.fitBounds(bounds);
-
 }
 
-function getPlaceDetail(marker, infoWindow) {
+/** Create a marker for a single place. Called by createMarkersForMultiplePlaces(). */
+function createMarkerForSinglePlace(place, infoWindow) {
+    // Only create marker if marker for place hasn't already been created
+    var existingMarker = getMarkerForPlace(place);
+
+    if (!existingMarker) {
+        var icon = {
+            url: place.icon,
+            size: new google.maps.Size(35, 35),
+            origin: new google.maps.Point(0, 0),
+            anchor: new google.maps.Point(15, 34),
+            scaledSize: new google.maps.Size(25, 25)
+        };
+
+        var newMarker = new google.maps.Marker({
+            map: map,
+            icon: icon,
+            title: place.name,
+            position: place.geometry.location,
+            id: place.place_id,
+            animation: google.maps.Animation.DROP
+        });
+
+        foodMarkers.push(newMarker);
+
+        return newMarker;
+
+    } else {
+        return existingMarker;
+    }
+}
+
+/** Get an existing marker from our foodMarkers list for a particular place */
+function getMarkerForPlace(place) {
+    var existingMarker = foodMarkers.find(function (existingMarker) {
+        return existingMarker.id === place.place_id;
+    });
+
+    return existingMarker;
+}
+
+/** Populate an info window using details retrieved from the Google Places Detail API
+ *  and Yelp Fusion API.
+ * Much of the code for this function was inspired by the code samples that are part
+ *  of Udacity's Google Maps API course: https://github.com/udacity/ud864
+ */
+function populateInfoWindow(marker, largeInfoWindow) {
+    /* First, let's get details from the Google Places Detail API */
     placesService.getDetails({
         placeId: marker.id,
     }, function (place, status) {
         if (status === google.maps.places.PlacesServiceStatus.OK) {
-            console.log(place);
-            var content = "<div>";
+
+            // Prepare to populate info window content with the results
+            var content = `<div>`;
 
             if (place.name) {
                 if (place.website) {
-                    content += `<strong><a href=${place.website} target="_blank">${place.name}</a></strong>`;
+                    content += `<a href=${place.website} target="_blank">${place.name}</a>`;
 
                 } else {
-                    content += `<strong>${place.name}</strong>`;
+                    content += `${place.name}`;
                 }
             }
 
             if (place.types) {
-                var type = place.types[0];
-                // Display in nice format          
-                content += `<br><span>${type.charAt(0).toUpperCase() + type.slice(1)}</span>`
+                content += `  <span class="label label-default">${place.types[0].charAt(0).toUpperCase() + place.types[0].slice(1)}</span>`
+            }
+
+            if (place.opening_hours) {
+                if (place.opening_hours.open_now) {
+                    content += `  <span class="label label-success">Open Now</span>`
+                } else {
+                    content += `  <span class="label label-danger">Closed</span>`                    
+                }
+            }
+
+            if (place.formatted_address) {
+                content += `<br><br><span>${place.formatted_address}</span>`;
+            }
+
+            if (place.formatted_phone_number) {
+                content += `<br><span><a href="tel: ${place.formatted_phone_number}">${place.formatted_phone_number}</a></span>`;
+            }
+
+            if (place.website) {
+                content += `<br><span><a href=${place.website}>${place.website}</a></span><br>`
             }
 
             if (place.rating) {
-                content += `<br><strong>Rating:</strong> <span>${place.rating}</span>`
+                content += `<br><i class="fa fa-google" aria-hidden="true"></i> <span>Rating: ${place.rating.toFixed(1)}</span>`
             }
 
-            // if (place.formatted_address) {
-            //     content += `<br><span>${place.formatted_address}</span>`;
-            // }
+            if (place.url) {
+                content += ` <a class="btn btn-default btn-xs" href=${place.url} target="_blank">Open in GMaps</a>`
+            }
 
-            // if (place.formatted_phone_number) {
-            //     content += `<br><span><a href="tel: ${place.formatted_phone_number}">${place.formatted_phone_number}</a></span>`;
-            // }
+            /* Next, let's get some additional details from the Yelp Fusion API */
+            searchYelpBusiness(place, function (data, status) {
+                if (status === "success") {
+                    var yelpBusiness = data.businesses[0];
 
-            // if (place.website) {
-            //     content += `<br><span><a href=${place.website}>${place.website}</a></span>`
-            // }
+                    if (yelpBusiness) {
+                        if (yelpBusiness.rating) {
+                            content += `<br><i class="fa fa-yelp" aria-hidden="true"></i> <span>Rating: ${yelpBusiness.rating.toFixed(1)}</span>`
 
-            // Add button for details
-            content += `<br><button type="button" class="btn btn-default btn-xs">Details</button>`
+                        }
 
-            infoWindow.marker = marker;
-            infoWindow.setContent(content);
-            infoWindow.open(map, marker);
+                        if (yelpBusiness.url) {
+                            content += ` <a class="btn btn-default btn-xs" href=${yelpBusiness.url} target="_blank">Open in Yelp</a>`
+                        }
+                    }
+                }
+
+                /* Finally, make the re-orient the map and set the content to the info window*/
+                map.setCenter(marker.getPosition());
+                map.setZoom(15);
+
+                // Assign the info window to the marker
+                largeInfoWindow.marker = marker;
+                largeInfoWindow.setContent(content);
+                largeInfoWindow.open(map, marker);
+
+                largeInfoWindow.addListener('click'),
+                    function () {
+                        largeInfoWindow.open(map, marker);
+                    };
+
+                largeInfoWindow.addListener('closeclick', function () {
+                    largeInfoWindow.marker = null;
+                });
+            })
         }
 
-        infoWindow.addListener('closeclick', function () {
-            infoWindow.marker = null;
-        });
     });
 }
 
+/** Reset the restaurants list observable array */
+function removeRestaurants(allRestaurants) {
+    allRestaurants([]);
+}
+
+function searchYelpBusiness(place, callback) {
+
+    $.ajax({
+        url: '/api/yelp/search/business',
+        method: 'POST',
+        data: {
+            location: place.formatted_address,
+            term: `food ${place.name}`
+        },
+        success: function (data, status) {
+            callback(data, status);
+        }
+    });
+}
+
+
 /* Define Knockout ViewModel */
 var ViewModel = function () {
-    // this.restaurants = ko.observableArray(restaurants);
-    this.currentLocation = ko.observable(getCurrentLocation());
-    this.searchText = ko.observable();
-    this.restaurantNameInput = ko.observable("");
+    var self = this;
 
-    this.setMapToLocation = function () {
-        setMapToLocation({
-            lat: 49.2823176,
-            lng: -123.1238306
-        });
+    self.allRestaurants = allRestaurants;
+    self.filteredRestaurants = filteredRestaurants;
+    self.currentPlaceId = ko.observable("");
+
+    // Default values for filters
+    self.openClosedFilterValue = ko.observable("all");
+    self.placeTypeFilterValue = ko.observable("all");
+
+    self.currentLocation = ko.observable(getCurrentLocation());
+    self.searchText = ko.observable("");
+    self.restaurantNameInput = ko.observable("");
+
+    self.applyFilters = function () {
+        // Remove existing filters
+        self.filteredRestaurants(self.allRestaurants());
+
+        var newlyFilteredPlaces = [];
+
+        /* Implement filtering for open/closed filter */
+        var openNow;
+        if (self.openClosedFilterValue() === "open") {
+            openNow = true;
+        } else if (self.openClosedFilterValue() === "closed") {
+            openNow = false;
+        }
+
+        switch (self.openClosedFilterValue()) {
+            case "open":
+            case "closed":
+                newlyFilteredPlaces = self.filteredRestaurants().filter(function (restaurant) {
+                    if (restaurant.opening_hours) {
+                        return restaurant.opening_hours.open_now == openNow;
+                    }
+                });
+                self.filteredRestaurants(newlyFilteredPlaces);
+                break;
+            case "all":
+                break;
+            default:
+                break;
+        }
+
+        /* Implement filtering for place type filter */
+        switch (self.placeTypeFilterValue()) {
+
+            case "restaurant":
+            case "cafe":
+            case "bar":
+                newlyFiltered = self.filteredRestaurants().filter(function (restaurant) {
+                    if (restaurant.types) {
+                        return restaurant.types[0] == self.placeTypeFilterValue();
+                    }
+                });
+                self.filteredRestaurants(newlyFiltered);
+                break;
+            case "all":
+                break;
+            default:
+                alert("Error, invalid filter value.");
+                break;
+        }
     }
 
-    this.searchByText = function () {
-        searchByText(this.searchText());
+    self.populateInfoWindow = function (place) {
+        var marker = getMarkerForPlace(place);
+
+        populateInfoWindow(marker, largeInfoWindow);
+
+        // Simple scroll to the map 
+        $('html, body').animate({
+            scrollTop: $("#map").offset().top
+        }, 1000);
+    }
+
+    self.searchByText = function () {
+        self.openClosedFilterValue("");
+        self.allRestaurants([]);
+        self.filteredRestaurants([]);
+
+        searchByText(self.searchText());
     };
 
-    this.searchByRestaurantName = function () {
-
-    };
-
+    self.clearCachedResults = function () {
+        self.placeTypeFilterValue("");
+        self.openClosedFilterValue("");
+        self.allRestaurants([]);
+        self.filteredRestaurants([]);
+    }
 };
 
 ko.applyBindings(new ViewModel());
