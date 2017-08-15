@@ -52,7 +52,7 @@ function loadSampleLocations() {
                 createMarkersForMultiplePlaces(sampleLocations);
             }
         }
-    })
+    });
 }
 
 /** Set the map to a particular location. **/
@@ -168,10 +168,7 @@ function searchByText(searchText) {
             }
         });
     }
-
-
-
-};
+}
 
 /** Utility function for removing markers from the map. */
 function removeMarkers(markers) {
@@ -188,8 +185,8 @@ function removeMarkers(markers) {
 function addPlaceToRestaurantsList(place) {
     /* Check if the place already exists in the allRestaurants observable array */
     var existingRestaurant = allRestaurants().find(function (restaurant) {
-        return restaurant.place_id === place.place_id
-    })
+        return restaurant.place_id === place.place_id;
+    });
 
     /* If it doesn't exist, add it */
     if (!existingRestaurant) {
@@ -216,7 +213,7 @@ function createMarkersForMultiplePlaces(places) {
         var marker = createMarkerForSinglePlace(place, largeInfoWindow);
 
         marker.addListener('click', function () {
-            if (largeInfoWindow.marker == this) {
+            if (largeInfoWindow.marker === this) {
                 // Don't do anything
             } else {
                 // Populate the info window
@@ -238,14 +235,14 @@ function createMarkersForMultiplePlaces(places) {
             addPlaceToRestaurantsList(place);
 
 
-        })
+        });
 
         if (place.geometry.viewport) {
             bounds.union(place.geometry.viewport);
         } else {
             bounds.extend(place.geometry.location);
         }
-    })
+    });
 
     map.fitBounds(bounds);
 }
@@ -316,14 +313,14 @@ function populateInfoWindow(marker, largeInfoWindow) {
             }
 
             if (place.types) {
-                content += `  <span class="label label-default">${place.types[0].charAt(0).toUpperCase() + place.types[0].slice(1)}</span>`
+                content += `  <span class="label label-default">${place.types[0].charAt(0).toUpperCase() + place.types[0].slice(1)}</span>`;
             }
 
             if (place.opening_hours) {
                 if (place.opening_hours.open_now) {
-                    content += `  <span class="label label-success">Open Now</span>`
+                    content += `  <span class="label label-success">Open Now</span>`;
                 } else {
-                    content += `  <span class="label label-danger">Closed</span>`                    
+                    content += `  <span class="label label-danger">Closed</span>`;                    
                 }
             }
 
@@ -336,15 +333,15 @@ function populateInfoWindow(marker, largeInfoWindow) {
             }
 
             if (place.website) {
-                content += `<br><span><a href=${place.website}>${place.website}</a></span><br>`
+                content += `<br><span><a href=${place.website}>${place.website}</a></span><br>`;
             }
 
             if (place.rating) {
-                content += `<br><i class="fa fa-google" aria-hidden="true"></i> <span>Rating: ${place.rating.toFixed(1)}</span>`
+                content += `<br><i class="fa fa-google" aria-hidden="true"></i> <span>Rating: ${place.rating.toFixed(1)}</span>`;
             }
 
             if (place.url) {
-                content += ` <a class="btn btn-default btn-xs" href=${place.url} target="_blank">Open in GMaps</a>`
+                content += ` <a class="btn btn-default btn-xs" href=${place.url} target="_blank">Open in GMaps</a>`;
             }
 
             /* Next, let's get some additional details from the Yelp Fusion API */
@@ -354,12 +351,12 @@ function populateInfoWindow(marker, largeInfoWindow) {
 
                     if (yelpBusiness) {
                         if (yelpBusiness.rating) {
-                            content += `<br><i class="fa fa-yelp" aria-hidden="true"></i> <span>Rating: ${yelpBusiness.rating.toFixed(1)}</span>`
+                            content += `<br><i class="fa fa-yelp" aria-hidden="true"></i> <span>Rating: ${yelpBusiness.rating.toFixed(1)}</span>`;
 
                         }
 
                         if (yelpBusiness.url) {
-                            content += ` <a class="btn btn-default btn-xs" href=${yelpBusiness.url} target="_blank">Open in Yelp</a>`
+                            content += ` <a class="btn btn-default btn-xs" href=${yelpBusiness.url} target="_blank">Open in Yelp</a>`;
                         }
                     }
                 }
@@ -373,15 +370,14 @@ function populateInfoWindow(marker, largeInfoWindow) {
                 largeInfoWindow.setContent(content);
                 largeInfoWindow.open(map, marker);
 
-                largeInfoWindow.addListener('click'),
-                    function () {
+                largeInfoWindow.addListener('click', function () {
                         largeInfoWindow.open(map, marker);
-                    };
+                    });
 
                 largeInfoWindow.addListener('closeclick', function () {
                     largeInfoWindow.marker = null;
                 });
-            })
+            });
         }
 
     });
@@ -443,7 +439,7 @@ var ViewModel = function () {
             case "closed":
                 newlyFilteredPlaces = self.filteredRestaurants().filter(function (restaurant) {
                     if (restaurant.opening_hours) {
-                        return restaurant.opening_hours.open_now == openNow;
+                        return restaurant.opening_hours.open_now === openNow;
                     }
                 });
                 self.filteredRestaurants(newlyFilteredPlaces);
@@ -462,7 +458,7 @@ var ViewModel = function () {
             case "bar":
                 newlyFiltered = self.filteredRestaurants().filter(function (restaurant) {
                     if (restaurant.types) {
-                        return restaurant.types[0] == self.placeTypeFilterValue();
+                        return restaurant.types[0] === self.placeTypeFilterValue();
                     }
                 });
                 self.filteredRestaurants(newlyFiltered);
@@ -473,7 +469,7 @@ var ViewModel = function () {
                 alert("Error, invalid filter value.");
                 break;
         }
-    }
+    };
 
     self.populateInfoWindow = function (place) {
         var marker = getMarkerForPlace(place);
@@ -484,7 +480,7 @@ var ViewModel = function () {
         $('html, body').animate({
             scrollTop: $("#map").offset().top
         }, 1000);
-    }
+    };
 
     self.searchByText = function () {
         self.openClosedFilterValue("");
@@ -499,7 +495,7 @@ var ViewModel = function () {
         self.openClosedFilterValue("");
         self.allRestaurants([]);
         self.filteredRestaurants([]);
-    }
+    };
 };
 
 ko.applyBindings(new ViewModel());
