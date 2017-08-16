@@ -44,7 +44,7 @@ function initMap() {
 
 /** Error callback for Google Maps API request */
 function mapError() {
-    displayErrorMessage("Error: The Google map wasn't successfuly retrieved.")
+    displayErrorMessage("Error: The Google map wasn't successfuly retrieved.");
 }
 
 /** Load sample locations data on startup. The locations are retrieved from the node server. */
@@ -236,7 +236,7 @@ function createMarkersForMultiplePlaces(places) {
         /* Simple animation when clicking a marker. 
         Taken from Google Maps Javascript API docs: https://developers.google.com/maps/documentation/javascript/examples/marker-animations
         */
-        marker.addListener('click', toggleBounce)
+        marker.addListener('click', toggleBounce);
 
         function toggleBounce() {
             if (marker.getAnimation() !== null) {
@@ -321,7 +321,7 @@ function filterMarkers(filteredPlaces) {
             if (marker.id === place.place_id) {
                 marker.setVisible(true);
             }
-        })
+        });
     });
 
 }
