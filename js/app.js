@@ -1,9 +1,11 @@
 /** Globals **/
 var map, bounds, searchTextBox, largeInfoWindow, smallInfoWindow, currentLocation, placesService, geocoder;
-var foodMarkers = [];
 var allRestaurants = ko.observableArray();
 var filteredRestaurants = ko.observableArray();
+var allPlacesMarkers = [];
 var currentRestaurant = ko.observable();
+var errorMessage = ko.observable("");
+var markerAnimationDuration = 2000;
 
 /** App entry point is the callback for fetching Google Maps Javascript API **/
 function initMap() {
@@ -40,6 +42,11 @@ function initMap() {
     loadSampleLocations();
 }
 
+/** Error callback for Google Maps API request */
+function mapError() {
+    displayErrorMessage("Error: The Google map wasn't successfuly retrieved.")
+}
+
 /** Load sample locations data on startup. The locations are retrieved from the node server. */
 function loadSampleLocations() {
     $.ajax({
@@ -50,6 +57,11 @@ function loadSampleLocations() {
                 var sampleLocations = data.sampleLocations;
 
                 createMarkersForMultiplePlaces(sampleLocations);
+            }
+        },
+        error: function (error, status) {
+            if (status === "error") {
+                displayErrorMessage("Error: There was an error in retrieving sample locations!");
             }
         }
     });
@@ -84,16 +96,16 @@ function setMapToCurrentLocation() {
     function handleError(error) {
         switch (error.code) {
             case error.PERMISSION_DENIED:
-                alert("User denied the request for Geolocation.");
+                displayErrorMessage("User denied the request for Geolocation.");
                 break;
             case error.POSITION_UNAVAILABLE:
-                alert("Location information is unavailable.");
+                displayErrorMessage("Location information is unavailable.");
                 break;
             case error.TIMEOUT:
-                alert("The request to get user location timed out.");
+                displayErrorMessage("The request to get user location timed out.");
                 break;
             case error.UNKNOWN_ERROR:
-                alert("An unknown error occurred.");
+                displayErrorMessage("An unknown error occurred.");
                 break;
         }
     }
@@ -119,16 +131,16 @@ function getCurrentLocation() {
     function handleError(error) {
         switch (error.code) {
             case error.PERMISSION_DENIED:
-                alert("User denied the request for Geolocation.");
+                displayErrorMessage("User denied the request for Geolocation.");
                 break;
             case error.POSITION_UNAVAILABLE:
-                alert("Location information is unavailable.");
+                displayErrorMessage("Location information is unavailable.");
                 break;
             case error.TIMEOUT:
-                alert("The request to get user location timed out.");
+                displayErrorMessage("The request to get user location timed out.");
                 break;
             case error.UNKNOWN_ERROR:
-                alert("An unknown error occurred.");
+                displayErrorMessage("An unknown error occurred.");
                 break;
         }
     }
@@ -139,13 +151,13 @@ function getCurrentLocation() {
  *  Upon a successful query, we then create markers for each returned place.
  */
 function searchByText(searchText) {
-    removeMarkers(foodMarkers);
+    removeMarkers(allPlacesMarkers);
     removeRestaurants(allRestaurants);
 
     bounds = map.getBounds();
 
     if (searchText === "") {
-        window.alert('Please enter a search term.');
+        displayErrorMessage("Please enter a search term.");
     } else {
         placesService.textSearch({
             query: searchText,
@@ -163,7 +175,7 @@ function searchByText(searchText) {
                 alert("Sorry, there are no results");
 
                 /* Reset markers and clear existing results */
-                removeMarkers(foodMarkers);
+                removeMarkers(allPlacesMarkers);
                 removeRestaurants(allRestaurants);
             }
         });
@@ -221,6 +233,22 @@ function createMarkersForMultiplePlaces(places) {
             }
         });
 
+        /* Simple animation when clicking a marker. 
+        Taken from Google Maps Javascript API docs: https://developers.google.com/maps/documentation/javascript/examples/marker-animations
+        */
+        marker.addListener('click', toggleBounce)
+
+        function toggleBounce() {
+            if (marker.getAnimation() !== null) {
+                marker.setAnimation(null);
+            } else {
+                marker.setAnimation(google.maps.Animation.BOUNCE);
+                window.setTimeout(function() {
+                    marker.setAnimation(null);
+                }, markerAnimationDuration);
+            }
+        }
+
         /* Search Yelp for additional business details and add results to the place object */
         searchYelpBusiness(place, function (data, status) {
             if (status === "success") {
@@ -270,7 +298,7 @@ function createMarkerForSinglePlace(place, infoWindow) {
             animation: google.maps.Animation.DROP
         });
 
-        foodMarkers.push(newMarker);
+        allPlacesMarkers.push(newMarker);
 
         return newMarker;
 
@@ -279,9 +307,28 @@ function createMarkerForSinglePlace(place, infoWindow) {
     }
 }
 
-/** Get an existing marker from our foodMarkers list for a particular place */
+/** Filter map markers so only the ones matching the filter values are visible on the map. */
+function filterMarkers(filteredPlaces) {
+
+    /* First, make all markers invisible */
+    allPlacesMarkers.forEach(function (marker) {
+        marker.setVisible(false);
+    });
+
+    /* Next, make markers that match the filtered places visible */
+    filteredPlaces.forEach(function (place) {
+        allPlacesMarkers.forEach(function (marker) {
+            if (marker.id === place.place_id) {
+                marker.setVisible(true);
+            }
+        })
+    });
+
+}
+
+/** Get an existing marker from our allPlacesMarkers list for a particular place */
 function getMarkerForPlace(place) {
-    var existingMarker = foodMarkers.find(function (existingMarker) {
+    var existingMarker = allPlacesMarkers.find(function (existingMarker) {
         return existingMarker.id === place.place_id;
     });
 
@@ -320,7 +367,7 @@ function populateInfoWindow(marker, largeInfoWindow) {
                 if (place.opening_hours.open_now) {
                     content += `  <span class="label label-success">Open Now</span>`;
                 } else {
-                    content += `  <span class="label label-danger">Closed</span>`;                    
+                    content += `  <span class="label label-danger">Closed</span>`;
                 }
             }
 
@@ -371,8 +418,8 @@ function populateInfoWindow(marker, largeInfoWindow) {
                 largeInfoWindow.open(map, marker);
 
                 largeInfoWindow.addListener('click', function () {
-                        largeInfoWindow.open(map, marker);
-                    });
+                    largeInfoWindow.open(map, marker);
+                });
 
                 largeInfoWindow.addListener('closeclick', function () {
                     largeInfoWindow.marker = null;
@@ -399,8 +446,22 @@ function searchYelpBusiness(place, callback) {
         },
         success: function (data, status) {
             callback(data, status);
+        },
+        error: function (error, status) {
+            displayErrorMessage("Error: Yelp business search was unsuccessful!");
         }
     });
+}
+
+function displayErrorMessage(message) {
+    errorMessage(message);
+
+    var htmlString = `<div class="alert alert-danger alert-dismissible error-alert" role="alert">
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <span>${message}</span>
+            </div>`;
+
+    $('#error-message-container').html(htmlString);
 }
 
 
@@ -410,7 +471,8 @@ var ViewModel = function () {
 
     self.allRestaurants = allRestaurants;
     self.filteredRestaurants = filteredRestaurants;
-    self.currentPlaceId = ko.observable("");
+    self.allPlacesMarkers = allPlacesMarkers;
+    self.errorMessage = errorMessage;
 
     // Default values for filters
     self.openClosedFilterValue = ko.observable("all");
@@ -419,6 +481,9 @@ var ViewModel = function () {
     self.currentLocation = ko.observable(getCurrentLocation());
     self.searchText = ko.observable("");
     self.restaurantNameInput = ko.observable("");
+
+
+
 
     self.applyFilters = function () {
         // Remove existing filters
@@ -456,23 +521,44 @@ var ViewModel = function () {
             case "restaurant":
             case "cafe":
             case "bar":
-                newlyFiltered = self.filteredRestaurants().filter(function (restaurant) {
+                newlyFilteredPlaces = self.filteredRestaurants().filter(function (restaurant) {
                     if (restaurant.types) {
                         return restaurant.types[0] === self.placeTypeFilterValue();
                     }
                 });
-                self.filteredRestaurants(newlyFiltered);
+                self.filteredRestaurants(newlyFilteredPlaces);
                 break;
             case "all":
                 break;
             default:
-                alert("Error, invalid filter value.");
+                displayErrorMessage("Error: Invalid filter value.");
                 break;
         }
+
+        /* Finally, filter the markers */
+        filterMarkers(self.filteredRestaurants());
+
+
     };
 
     self.populateInfoWindow = function (place) {
         var marker = getMarkerForPlace(place);
+
+        /* Simple animation when clicking a marker. 
+        Taken from Google Maps Javascript API docs: https://developers.google.com/maps/documentation/javascript/examples/marker-animations
+        */
+        function toggleBounce() {
+            if (marker.getAnimation() !== null) {
+                marker.setAnimation(null);
+            } else {
+                marker.setAnimation(google.maps.Animation.BOUNCE);
+                window.setTimeout(function() {
+                    marker.setAnimation(null);
+                }, markerAnimationDuration);
+            }
+        }
+
+        toggleBounce();
 
         populateInfoWindow(marker, largeInfoWindow);
 
@@ -491,8 +577,8 @@ var ViewModel = function () {
     };
 
     self.clearCachedResults = function () {
-        self.placeTypeFilterValue("");
-        self.openClosedFilterValue("");
+        self.placeTypeFilterValue("all");
+        self.openClosedFilterValue("all");
         self.allRestaurants([]);
         self.filteredRestaurants([]);
     };

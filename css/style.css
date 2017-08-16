@@ -21,3 +21,12 @@ body {
     overflow-y: auto;
     max-height: 40vh
 }
+
+#error-message-container {
+    position: fixed;
+    width: 100%;
+    text-align: center;
+    margin: 0 auto;
+    top: 0px;
+    z-index: 99;
+}

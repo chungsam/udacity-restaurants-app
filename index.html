@@ -15,6 +15,11 @@
 
 <body>
     <div class="container-fluid">
+        <!-- Container for display any error messages here  -->
+        <div class="row">
+            <div id="error-message-container" data-bind="visible: errorMessage" class="col-lg-12">
+            </div>
+        </div>
         <!-- Main side panel for restaurant searches and listings  -->
         <div class="col-xs-12 col-md-4 col-lg-4">
             <div id="side-panel">
@@ -109,9 +114,9 @@
                                             <li class="list-group-item">
                                                 <button id="restaurants-list-details-button" class="btn btn-default btn-sm" data-bind="click: $root.populateInfoWindow">Open in map</button>
                                                 <h5 class="list-group-item-heading" data-bind="if: $data.name"><span data-bind="text:name"></span> <span class="label label-default" data-bind="text: types[0].charAt(0).toUpperCase() + types[0].slice(1)"></span>
-                                                    <span data-bind="if: opening_hours">
+                                                    <span data-bind="if: $data.opening_hours">
                                                         <span class="label label-success" data-bind="if: opening_hours.open_now">Open Now</span>
-                                                        <span class="label label-danger" data-bind="if: !opening_hours.open_now">Closed</span>
+                                                    <span class="label label-danger" data-bind="if: !opening_hours.open_now">Closed</span>
                                                     </span>
                                                 </h5>
                                                 <p class="list-group-item-text" data-bind="if: ($data.yelp && $data.yelp.categories)">
@@ -148,12 +153,12 @@
     <script src="lib/js/knockout-3.4.2.js"></script>
     <!-- Knockstrap  -->
     <script src="js/knockstrap.min.js"></script>
-     <!-- Sample locations  
+    <!-- Sample locations  
     <script src="data/sampleLocations.js"></script> -->
     <!-- Main app  -->
     <script src="js/app.js"></script>
     <!-- Defer loading for Google Map  -->
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB6j9MTzxR2gkJDmEWJB-6coay9r_QLPvY&libraries=places,geometry&callback=initMap">
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB6j9MTzxR2gkJDmEWJB-6coay9r_QLPvY&libraries=places,geometry&callback=initMap" onerror="mapError()">
     </script>
 
 </body>
