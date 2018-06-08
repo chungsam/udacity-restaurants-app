@@ -1,5 +1,6 @@
-var request = require('request');
-var YELP_API_KEY = 'sWAhHYpkLjU5xsTFeLS3RAqzN-Bo2tZbvJJSoMZ7B3UbyHVkHX-2KWUGndwQZ9n5xcz3PwTXr_q5OGfzv3rm8_VCobymglYUvXn2MV0PJMIcgCTb57R4GMxFrlMCW3Yx';
+var request = require("request");
+var YELP_API_KEY =
+  "sWAhHYpkLjU5xsTFeLS3RAqzN-Bo2tZbvJJSoMZ7B3UbyHVkHX-2KWUGndwQZ9n5xcz3PwTXr_q5OGfzv3rm8_VCobymglYUvXn2MV0PJMIcgCTb57R4GMxFrlMCW3Yx";
 
 /* As of December 7, 2017 Yelp no longer uses OAuth 2.0 for authentication but now uses Api keys
 var yelpClientId = 'U6R4cTX3nwcEY73roFYqwg';
@@ -27,32 +28,31 @@ var yelpClientSecret = 'cNGBy6O6qZAaMuJkpj48kSCXMzA1tcPSL0eKEw9dd0bhCbCEtCz7hhiM
 //         });
 // }
 
-
 exports.searchBusiness = function(queryParams, callback) {
-    request({
-            url: 'https://api.yelp.com/v3/businesses/search',
-            method: 'GET',
-            headers: {
-                "Authorization": 'Bearer ' + YELP_API_KEY
-            },
-            qs: {
-                location: queryParams.location,
-                term: queryParams.term
-            }
-        },
+  request(
+    {
+      url: "https://api.yelp.com/v3/businesses/search",
+      method: "GET",
+      headers: {
+        Authorization: "Bearer " + YELP_API_KEY
+      },
+      qs: {
+        location: queryParams.location,
+        term: queryParams.term
+      }
+    },
 
-        function (error, results) {
-            if (error) {
-                console.log(error);
-                res.json({
-                    "message": "Yelp business search error",
-                    "error": error.message
-                });
-            }
+    function(error, results) {
+      if (error) {
+        console.log(error);
+        res.json({
+          message: "Yelp business search error",
+          error: error.message
+        });
+      }
 
-            var json = JSON.parse(results.body);
-            callback(error, results);
-        }
-    )
-
-}
+      var json = JSON.parse(results.body);
+      callback(error, results);
+    }
+  );
+};

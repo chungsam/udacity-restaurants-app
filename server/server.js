@@ -58,6 +58,7 @@ app.post('/api/yelp/search/business', function (req, res) {
         }
 
         var json = JSON.parse(results.body);
+        
         return res.send(json);
     })
 
