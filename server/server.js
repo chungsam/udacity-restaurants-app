@@ -27,15 +27,16 @@ app.use('/css', express.static(path.join(__dirname + '/../css')));
 app.use('/js', express.static(path.join(__dirname + '/../js')));
 app.use('/data', express.static(path.join(__dirname + '/../data')));
 
+// No longer needed, see note in services/yelpApiService.js
 // Make initial call to Yelp API and store access token in storage
-yelpApiService.getAccessToken(function (err, results) {
-    if (err) {
-        return console.log("Access token error");
-    }
+// yelpApiService.getAccessToken(function (err, results) {
+//     if (err) {
+//         return console.log("Access token error");
+//     }
 
-    var json = JSON.parse(results.body);
-    appCache.set('yelpAccessToken', json.access_token, json.expires_in);
-})
+//     var json = JSON.parse(results.body);
+//     appCache.set('yelpAccessToken', json.access_token, json.expires_in);
+// })
 
 /* Routes */
 app.get('/', function (req, res) {
@@ -48,10 +49,10 @@ app.get('/api/sample-locations', function (req, res) {
 
 // Route for calling Yelp API business search
 app.post('/api/yelp/search/business', function (req, res) {
-    var accessToken = appCache.get('yelpAccessToken');
+    // var accessToken = appCache.get('yelpAccessToken');
     var queryParams = req.body;
 
-    yelpApiService.searchBusiness(accessToken, queryParams, function (err, results) {
+    yelpApiService.searchBusiness(queryParams, function (err, results) {
         if (err) {
             return console.log("search business error");
         }
